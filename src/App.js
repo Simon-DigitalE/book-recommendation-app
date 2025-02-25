@@ -35,7 +35,7 @@ function useRemoteStorage() {
     }
   };
 
-  const setBooks = async (books: any[]) => {
+  const setBooks = async (books) => {
     try {
       const res = await fetch('https://example.com/api/books', {
         method: 'POST', // or PUT
@@ -55,8 +55,8 @@ function useRemoteStorage() {
 
 // useUserBooks manages the user’s book list with remote sync and local fallback.
 function useUserBooks() {
-  const [userBooks, setUserBooks] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [userBooks, setUserBooks] = useState([]);
+  const [error, setError] = useState(null);
   const { getBooks, setBooks } = useRemoteStorage();
 
   // Load books from remote storage on mount; fallback to localStorage.
@@ -90,11 +90,11 @@ function useUserBooks() {
     }
   }, [userBooks, setBooks]);
 
-  const addBook = (book: any) => {
+  const addBook = (book) => {
     setUserBooks(prev => [...prev, book]);
   };
 
-  const removeBook = (id: number) => {
+  const removeBook = (id) => {
     setUserBooks(prev => prev.filter(b => b.id !== id));
   };
 
@@ -103,11 +103,11 @@ function useUserBooks() {
 
 // useGoogleBooks handles Google Books API calls (with caching and error handling).
 function useGoogleBooks() {
-  const [localCache, setLocalCache] = useState<Record<string, any>>({});
+  const [localCache, setLocalCache] = useState({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(null);
 
-  const searchBooks = useCallback(async (query: string, type = 'title') => {
+  const searchBooks = useCallback(async (query, type = 'title') => {
     setLoading(true);
     setError(null);
     const cacheKey = `${type}:${query.toLowerCase()}`;
@@ -129,9 +129,9 @@ function useGoogleBooks() {
       if (!response.ok) throw new Error('Google Books API request failed');
       const data = await response.json();
 
-      let results: any[] = [];
+      let results = [];
       if (data.items && data.items.length > 0) {
-        results = data.items.map((item: any) => {
+        results = data.items.map((item) => {
           const volumeInfo = item.volumeInfo || {};
           const categories = volumeInfo.categories || [];
           return {
@@ -148,7 +148,7 @@ function useGoogleBooks() {
       setLocalCache(prev => ({ ...prev, [cacheKey]: results }));
       setLoading(false);
       return results;
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setError(err.message);
       setLoading(false);
@@ -162,25 +162,20 @@ function useGoogleBooks() {
 /* ---------------------------- Modular Components ---------------------------- */
 
 // BookForm – handles book entry with autocomplete suggestions.
-function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase }: {
-  onAddBook: (book: any) => void;
-  googleBooksHook: any;
-  bookDatabase: any[];
-  addBookToDatabase: (book: any) => void;
-}) {
+function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase }) {
   const { searchBooks, loading: searchLoading, error: googleError } = googleBooksHook;
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookAuthor, setNewBookAuthor] = useState('');
   const [newBookRating, setNewBookRating] = useState(5);
-  const [titleSuggestions, setTitleSuggestions] = useState<any[]>([]);
-  const [authorSuggestions, setAuthorSuggestions] = useState<string[]>([]);
+  const [titleSuggestions, setTitleSuggestions] = useState([]);
+  const [authorSuggestions, setAuthorSuggestions] = useState([]);
   const [showTitleSuggestions, setShowTitleSuggestions] = useState(false);
   const [showAuthorSuggestions, setShowAuthorSuggestions] = useState(false);
-  const titleInputRef = useRef<HTMLDivElement>(null);
-  const authorInputRef = useRef<HTMLDivElement>(null);
-  const searchTimeoutRef = useRef<any>(null);
+  const titleInputRef = useRef(null);
+  const authorInputRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTitleChange = (e) => {
     const value = e.target.value;
     setNewBookTitle(value);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -197,7 +192,7 @@ function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase 
       searchTimeoutRef.current = setTimeout(async () => {
         const apiResults = await searchBooks(value, 'title');
         const combinedResults = _.uniqBy(
-          [...localResults, ...apiResults.map((book: any) => ({
+          [...localResults, ...apiResults.map(book => ({
             title: book.title,
             author: book.author,
             coverImage: book.coverImage,
@@ -215,7 +210,7 @@ function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase 
     }
   };
 
-  const handleAuthorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAuthorChange = (e) => {
     const value = e.target.value;
     setNewBookAuthor(value);
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -230,7 +225,7 @@ function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase 
       }
       searchTimeoutRef.current = setTimeout(async () => {
         const apiResults = await searchBooks(value, 'author');
-        const apiAuthors = _.uniq(apiResults.map((book: any) => book.author));
+        const apiAuthors = _.uniq(apiResults.map(book => book.author));
         const combinedResults = _.uniq([...localResults, ...apiAuthors]).slice(0, 5);
         setAuthorSuggestions(combinedResults);
         setShowAuthorSuggestions(true);
@@ -241,7 +236,7 @@ function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase 
     }
   };
 
-  const selectTitleSuggestion = (suggestion: any) => {
+  const selectTitleSuggestion = (suggestion) => {
     setNewBookTitle(suggestion.title);
     setNewBookAuthor(suggestion.author);
     setShowTitleSuggestions(false);
@@ -260,21 +255,21 @@ function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase 
       }
     }
     if (!suggestion.author) {
-      authorInputRef.current?.focus();
+      authorInputRef.current && authorInputRef.current.focus();
     }
   };
 
-  const selectAuthorSuggestion = (author: string) => {
+  const selectAuthorSuggestion = (author) => {
     setNewBookAuthor(author);
     setShowAuthorSuggestions(false);
   };
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (titleInputRef.current && !titleInputRef.current.contains(e.target as Node)) {
+    const handleClickOutside = (e) => {
+      if (titleInputRef.current && !titleInputRef.current.contains(e.target)) {
         setShowTitleSuggestions(false);
       }
-      if (authorInputRef.current && !authorInputRef.current.contains(e.target as Node)) {
+      if (authorInputRef.current && !authorInputRef.current.contains(e.target)) {
         setShowAuthorSuggestions(false);
       }
     };
@@ -290,7 +285,7 @@ function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase 
     );
     if (!foundBook) {
       const apiResults = await searchBooks(newBookTitle, 'title');
-      const bestMatch = apiResults.find((book: any) =>
+      const bestMatch = apiResults.find(book =>
         book.title.toLowerCase() === newBookTitle.toLowerCase()
       ) || apiResults[0];
       if (bestMatch) {
@@ -355,7 +350,7 @@ function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase 
                         src={suggestion.coverImage} 
                         alt=""
                         className="h-12 w-8 mr-2 object-cover"
-                        onError={(e) => {e.currentTarget.style.display = 'none'}}
+                        onError={(e) => { e.currentTarget.style.display = 'none' }}
                       />
                     )}
                     <div>
@@ -429,12 +424,11 @@ function BookForm({ onAddBook, googleBooksHook, bookDatabase, addBookToDatabase 
 }
 
 // BookList – displays the list of books the user has added.
-function BookList({ userBooks, onRemoveBook }: { userBooks: any[]; onRemoveBook: (id: number) => void }) {
+function BookList({ userBooks, onRemoveBook }) {
   return (
     <div className="mb-8 p-4 bg-white rounded-lg shadow">
       <h2 className="text-xl font-semibold mb-4" style={{ 
           color: colors.primary.midnightBlue,
-          fontFamily: 'Cabin, sans-serif',
           fontWeight: 700
         }}>Your Books</h2>
       {userBooks.length === 0 ? (
@@ -452,7 +446,7 @@ function BookList({ userBooks, onRemoveBook }: { userBooks: any[]; onRemoveBook:
                     src={book.coverImage} 
                     alt="" 
                     className="h-16 w-12 mr-3 object-cover"
-                    onError={(e) => {e.currentTarget.style.display = 'none'}}
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
                   />
                 )}
                 <div>
@@ -495,7 +489,7 @@ function BookList({ userBooks, onRemoveBook }: { userBooks: any[]; onRemoveBook:
 }
 
 // StatsDashboard – displays reading statistics.
-function StatsDashboard({ userBooks }: { userBooks: any[] }) {
+function StatsDashboard({ userBooks }) {
   const totalBooks = userBooks.length;
   const averageRating = totalBooks ? (userBooks.reduce((sum, book) => sum + book.rating, 0) / totalBooks).toFixed(1) : 0;
   const topGenre = (() => {
@@ -531,11 +525,7 @@ function StatsDashboard({ userBooks }: { userBooks: any[] }) {
 }
 
 // RecommendationList – shows recommended books with synopses and feedback buttons.
-function RecommendationList({ recommendations, onAddBook, onFeedback }: { 
-  recommendations: { data: any[], loading: boolean, userBooksEmpty: boolean }; 
-  onAddBook: (book: any) => void;
-  onFeedback: (bookId: number, type: 'like' | 'dislike') => void;
-}) {
+function RecommendationList({ recommendations, onAddBook, onFeedback }) {
   return (
     <div className="p-4 bg-white rounded-lg shadow">
       <h2 className="text-xl font-semibold mb-4" style={{ 
@@ -562,7 +552,7 @@ function RecommendationList({ recommendations, onAddBook, onFeedback }: {
                   src={book.coverImage} 
                   alt="" 
                   className="h-24 w-16 mr-3 object-cover"
-                  onError={(e) => {e.currentTarget.style.display = 'none'}}
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
                 />
               )}
               <div>
@@ -630,7 +620,7 @@ function RecommendationList({ recommendations, onAddBook, onFeedback }: {
 
 function BookRecommendationApp() {
   // Initial static book database
-  const [bookDatabase, setBookDatabase] = useState<any[]>([
+  const [bookDatabase, setBookDatabase] = useState([
     {
       id: 1,
       title: "The Great Gatsby",
@@ -675,14 +665,14 @@ function BookRecommendationApp() {
   ]);
 
   // Recommendation state and feedback state (for user feedback loop)
-  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
-  const [feedbackMap, setFeedbackMap] = useState<Record<number, 'like' | 'dislike'>>({});
+  const [feedbackMap, setFeedbackMap] = useState({});
   const { userBooks, addBook, removeBook, error: booksError } = useUserBooks();
   const googleBooksHook = useGoogleBooks();
 
   // Add a book to the static database if it doesn't already exist.
-  const addBookToDatabase = (book: any) => {
+  const addBookToDatabase = (book) => {
     setBookDatabase(prev => [...prev, book]);
   };
 
@@ -699,7 +689,7 @@ function BookRecommendationApp() {
       const topGenres = Object.entries(genreCounts)
         .sort((a, b) => b[1] - a[1])
         .map(entry => entry[0]);
-      let additionalBooks: any[] = [];
+      let additionalBooks = [];
       if (topGenres.length > 0 && topGenres[0] !== 'Unknown') {
         const genreQuery = encodeURIComponent(`subject:${topGenres[0]}`);
         try {
@@ -707,7 +697,7 @@ function BookRecommendationApp() {
           if (response.ok) {
             const data = await response.json();
             if (data.items && data.items.length > 0) {
-              additionalBooks = data.items.map((item: any) => {
+              additionalBooks = data.items.map((item) => {
                 const volumeInfo = item.volumeInfo || {};
                 const categories = volumeInfo.categories || [];
                 return {
@@ -740,7 +730,7 @@ function BookRecommendationApp() {
         if (alreadyRead) return false;
         let score = 0;
         if (book.features && book.features.length > 0) {
-          book.features.forEach((feature: string) => {
+          book.features.forEach(feature => {
             if (featureCounts[feature]) score += featureCounts[feature];
           });
         }
@@ -767,7 +757,7 @@ function BookRecommendationApp() {
     generateRecommendations();
   }, [userBooks, feedbackMap]);
 
-  const handleFeedback = (bookId: number, type: 'like' | 'dislike') => {
+  const handleFeedback = (bookId, type) => {
     setFeedbackMap(prev => ({ ...prev, [bookId]: type }));
   };
 
